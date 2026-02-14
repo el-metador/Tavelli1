@@ -86,32 +86,6 @@ const HistoryView: React.FC = () => {
                    )}
                 </div>
 
-                {/* Tweet Interactions */}
-                <div className="flex justify-between mt-3 max-w-md text-[#8e918f]">
-                   <button className="flex items-center gap-1 hover:text-blue-400 transition-colors group/btn">
-                      <div className="p-2 rounded-full group-hover/btn:bg-blue-400/10 transition-colors">
-                        <span className="material-symbols-rounded text-[18px]">chat_bubble_outline</span>
-                      </div>
-                      <span className="text-xs">Re-draft</span>
-                   </button>
-                   <button className="flex items-center gap-1 hover:text-green-400 transition-colors group/btn">
-                      <div className="p-2 rounded-full group-hover/btn:bg-green-400/10 transition-colors">
-                        <span className="material-symbols-rounded text-[18px]">repeat</span>
-                      </div>
-                      <span className="text-xs">Retry</span>
-                   </button>
-                   <button className="flex items-center gap-1 hover:text-pink-400 transition-colors group/btn">
-                      <div className="p-2 rounded-full group-hover/btn:bg-pink-400/10 transition-colors">
-                        <span className="material-symbols-rounded text-[18px]">favorite_border</span>
-                      </div>
-                      <span className="text-xs">Good</span>
-                   </button>
-                   <button className="flex items-center gap-1 hover:text-blue-400 transition-colors group/btn">
-                      <div className="p-2 rounded-full group-hover/btn:bg-blue-400/10 transition-colors">
-                        <span className="material-symbols-rounded text-[18px]">share</span>
-                      </div>
-                   </button>
-                </div>
               </div>
             </div>
           </div>

@@ -8,7 +8,7 @@ import {
   PlanType,
   UserPlan,
 } from '../types';
-import { getSupabaseUserId, supabase } from './supabase';
+import { getSupabaseUser, getSupabaseUserId, supabase } from './supabase';
 
 const API_BASE_URL =
   ((globalThis as any).process?.env?.REACT_APP_API_URL as string | undefined) ||
@@ -97,227 +97,30 @@ const PLAN_MAP: Record<PlanType, UserPlan> = {
   },
 };
 
-const daysAgoIso = (days: number, hour = 10): string => {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  d.setHours(hour, 20, 0, 0);
-  return d.toISOString();
-};
+const normalizeAccountPart = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24);
 
-const SEED_EMAILS: Email[] = [
-  {
-    id: '101',
-    accountId: 'acc-main',
-    senderName: 'Airbnb Security',
-    senderEmail: 'no-reply@airbnb.com',
-    subject: 'Your verification code is 582194',
-    snippet: 'Use code 582194 to continue login. This code expires in 10 minutes.',
-    body: '<p>Use this code to verify your sign in: <b>582194</b>.</p><p><a href="https://www.airbnb.com/verify?token=abc">Verify device</a></p>',
-    date: daysAgoIso(0, 9),
-    isRead: false,
-    category: EmailCategory.TEMPORARY_IMPORTANT,
-  },
-  {
-    id: '102',
-    accountId: 'acc-main',
-    senderName: 'Booking.com Support',
-    senderEmail: 'support@booking.com',
-    subject: 'Account restriction notice',
-    snippet:
-      'Your property booking account is temporarily blocked. You can appeal by replying to this email.',
-    body: '<p>Your account has been blocked for policy reasons.</p><p>You may appeal by replying to this message.</p>',
-    date: daysAgoIso(0, 8),
-    isRead: false,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '103',
-    accountId: 'acc-main',
-    senderName: 'Notion Waitlist',
-    senderEmail: 'team@updates.notion.com',
-    subject: 'You are near the top of the waitlist',
-    snippet: 'Confirm your interest in the next 24 hours to keep your place.',
-    body: '<p>Good news, your waitlist position is almost ready.</p><p><a href="https://notion.so/waitlist/confirm">Confirm now</a></p>',
-    date: daysAgoIso(1, 17),
-    isRead: false,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '104',
-    accountId: 'acc-main',
-    senderName: 'Figma Billing',
-    senderEmail: 'billing@figma.com',
-    subject: 'Subscription expires in 3 days',
-    snippet: 'Your Pro subscription will expire on renewal date unless updated.',
-    body: '<p>Your subscription expires soon. Please update your payment method.</p>',
-    date: daysAgoIso(2, 12),
-    isRead: true,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '105',
-    accountId: 'acc-main',
-    senderName: 'Nike',
-    senderEmail: 'promo@nike.com',
-    subject: '70% OFF this weekend only',
-    snippet: 'New arrivals. Massive discount. Limited time.',
-    body: '<p>Huge weekend sale.</p>',
-    date: daysAgoIso(0, 6),
-    isRead: true,
-    category: EmailCategory.PROMOTION,
-  },
-  {
-    id: '106',
-    accountId: 'acc-main',
-    senderName: 'YouTube',
-    senderEmail: 'noreply@youtube.com',
-    subject: 'New videos from channels you follow',
-    snippet: 'Watch now and never miss an upload.',
-    body: '<p>Your weekly digest.</p>',
-    date: daysAgoIso(3, 13),
-    isRead: true,
-    category: EmailCategory.SOCIAL,
-  },
-  {
-    id: '107',
-    accountId: 'acc-main',
-    senderName: 'Cloudflare',
-    senderEmail: 'no-reply@cloudflare.com',
-    subject: 'Confirm email change request',
-    snippet: 'Click to verify your account email change request.',
-    body: '<p>To confirm your account action, <a href="https://dash.cloudflare.com/verify-email?id=9988">verify now</a>.</p>',
-    date: daysAgoIso(1, 7),
-    isRead: false,
-    category: EmailCategory.TEMPORARY_IMPORTANT,
-  },
-  {
-    id: '108',
-    accountId: 'acc-main',
-    senderName: 'Stripe Alerts',
-    senderEmail: 'alerts@stripe.com',
-    subject: 'Action required on your account',
-    snippet: 'Your account requires additional verification documents.',
-    body: '<p>Upload verification documents to avoid payout delays.</p>',
-    date: daysAgoIso(6, 15),
-    isRead: false,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '109',
-    accountId: 'acc-main',
-    senderName: 'Legacy Travel',
-    senderEmail: 'support@legacy-travel.com',
-    subject: 'Trip itinerary update',
-    snippet: 'Updated schedule and gate information for your trip.',
-    body: '<p>Gate changed to A14.</p>',
-    date: daysAgoIso(8, 11),
-    isRead: true,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '201',
-    accountId: 'acc-work',
-    senderName: 'Google Workspace',
-    senderEmail: 'workspace-noreply@google.com',
-    subject: 'Admin login verification code: 939100',
-    snippet: 'Use 939100 to verify admin login in your organization account.',
-    body: '<p>Code: <b>939100</b></p>',
-    date: daysAgoIso(0, 10),
-    isRead: false,
-    category: EmailCategory.TEMPORARY_IMPORTANT,
-  },
-  {
-    id: '202',
-    accountId: 'acc-work',
-    senderName: 'HubSpot',
-    senderEmail: 'updates@hubspot.com',
-    subject: 'Monthly growth report',
-    snippet: 'Your monthly report is ready.',
-    body: '<p>Report attached.</p>',
-    date: daysAgoIso(1, 16),
-    isRead: true,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '301',
-    accountId: 'acc-side',
-    senderName: 'Linear',
-    senderEmail: 'security@linear.app',
-    subject: 'Verify your sign-in',
-    snippet: 'Complete verification with this link.',
-    body: '<p><a href="https://linear.app/verify?code=gh9">Verify sign in</a></p>',
-    date: daysAgoIso(0, 14),
-    isRead: false,
-    category: EmailCategory.TEMPORARY_IMPORTANT,
-  },
-  {
-    id: '401',
-    accountId: 'acc-finance',
-    senderName: 'Bank Alerts',
-    senderEmail: 'alerts@bank.com',
-    subject: 'Security alert in your account',
-    snippet: 'Please verify recent card activity in app.',
-    body: '<p>Possible suspicious activity detected.</p>',
-    date: daysAgoIso(1, 9),
-    isRead: false,
-    category: EmailCategory.IMPORTANT,
-  },
-  {
-    id: '501',
-    accountId: 'acc-extra',
-    senderName: 'Canva',
-    senderEmail: 'team@canva.com',
-    subject: 'Your team invite is waiting',
-    snippet: 'Confirm invite to join workspace.',
-    body: '<p><a href="https://canva.com/verify-invite">Verify invite</a></p>',
-    date: daysAgoIso(2, 18),
-    isRead: false,
-    category: EmailCategory.TEMPORARY_IMPORTANT,
-  },
-];
+const getPrimaryAccountFromAuth = async (): Promise<Account | null> => {
+  const user = await getSupabaseUser();
+  if (!user?.email) return null;
 
-const SEED_ACCOUNTS: Account[] = [
-  {
-    id: 'acc-main',
-    email: 'me.personal@gmail.com',
-    name: 'Personal',
-    avatar: '',
+  const local = user.email.split('@')[0] || user.id;
+  const idPart = normalizeAccountPart(local) || user.id.slice(0, 8);
+  const displayName = user.fullName?.trim() || local;
+
+  return {
+    id: `acc-${idPart}`,
+    email: user.email,
+    name: displayName,
+    avatar: user.avatarUrl || '',
     provider: 'gmail',
     isActive: true,
-  },
-  {
-    id: 'acc-work',
-    email: 'me.work@gmail.com',
-    name: 'Work',
-    avatar: '',
-    provider: 'gmail',
-    isActive: false,
-  },
-  {
-    id: 'acc-side',
-    email: 'me.side@gmail.com',
-    name: 'Side',
-    avatar: '',
-    provider: 'gmail',
-    isActive: false,
-  },
-  {
-    id: 'acc-finance',
-    email: 'finance@company.com',
-    name: 'Finance',
-    avatar: '',
-    provider: 'gmail',
-    isActive: false,
-  },
-  {
-    id: 'acc-extra',
-    email: 'ops@company.com',
-    name: 'Ops',
-    avatar: '',
-    provider: 'gmail',
-    isActive: false,
-  },
-];
+  };
+};
 
 const IMPORTANT_REGEX =
   /booking|бронир|waitlist|verification|verify|код|otp|security|account|аккаунт|subscription|подписк|renew|expire|billing|appeal|blocked|suspend|restricted/i;
@@ -460,8 +263,6 @@ export const fetchRecentEmails = async (
   limit = 10,
   planType: PlanType = 'FREE'
 ): Promise<Email[]> => {
-  const base = normalizeAndSort(SEED_EMAILS);
-
   try {
     const response = await fetch(
       `${API_BASE_URL}/integrations/gmail/messages?accountId=${encodeURIComponent(accountId)}&limit=${encodeURIComponent(
@@ -476,10 +277,10 @@ export const fetchRecentEmails = async (
       if (Array.isArray(payload.emails)) return payload.emails;
     }
   } catch {
-    // Fallback below.
+    // Return empty state when backend is unavailable.
   }
 
-  return base.filter((email) => email.accountId === accountId).slice(0, limit);
+  return [];
 };
 
 export const watchInbox = async (
@@ -497,9 +298,9 @@ export const watchInbox = async (
     });
     if (response.ok) return { subscribed: true, accountId };
   } catch {
-    // Fallback to simulated subscription in MVP mode.
+    // Return clean failure when backend is unavailable.
   }
-  return { subscribed: true, accountId };
+  return { subscribed: false, accountId };
 };
 
 export const sendDraft = async (
@@ -518,15 +319,9 @@ export const sendDraft = async (
     });
     if (response.ok) return { sent: true };
   } catch {
-    // Fallback: emulate successful send for frontend MVP.
+    // Return clean failure when backend is unavailable.
   }
-
-  await addHistoryItem({
-    actionType: 'reply',
-    description: `Draft sent to ${draft.to}`,
-    targetEmail: draft.subject || 'New draft',
-  });
-  return { sent: true };
+  return { sent: false };
 };
 
 export const getGmailAuthUrl = async (
@@ -645,16 +440,7 @@ export const getHistory = async (): Promise<HistoryItem[]> => {
   const fromStorage = safeRead<HistoryItem[]>(key, []);
   if (fromStorage.length > 0) return fromStorage;
 
-  return [
-    {
-      id: 'h-1',
-      actionType: 'analysis',
-      description: 'Auto-analyzed the latest 10 emails and generated hot actions.',
-      targetEmail: 'Inbox bootstrap',
-      timestamp: new Date().toISOString(),
-      aiStyle: 'human',
-    },
-  ];
+  return [];
 };
 
 export const addHistoryItem = async (item: Omit<HistoryItem, 'id' | 'timestamp'>): Promise<HistoryItem> => {
@@ -703,7 +489,12 @@ export const addHistoryItem = async (item: Omit<HistoryItem, 'id' | 'timestamp'>
 
 export const getAccounts = async (planType: PlanType = 'FREE'): Promise<Account[]> => {
   const allowed = PLAN_MAP[planType].limits.maxAccounts;
-  return SEED_ACCOUNTS.slice(0, allowed);
+  if (allowed <= 0) return [];
+
+  const primary = await getPrimaryAccountFromAuth();
+  if (!primary) return [];
+
+  return [primary];
 };
 
 export const getSettings = async (): Promise<AppSettings> => {

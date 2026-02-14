@@ -58,7 +58,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({
   };
 
   const handleSend = async () => {
-    await sendDraft(
+    const result = await sendDraft(
       activeAccountId,
       {
         to,
@@ -67,6 +67,11 @@ const ComposeModal: React.FC<ComposeModalProps> = ({
       },
       planType
     );
+    if (!result.sent) {
+      alert('Не удалось отправить письмо. Проверьте подключение Gmail в настройках.');
+      return;
+    }
+
     alert(`Sent email to ${to || 'recipient'} with provider ${aiProvider}`);
     onClose();
   };

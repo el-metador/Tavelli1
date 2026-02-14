@@ -83,7 +83,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleConnectGmail = async () => {
     const account = accounts.find((item) => item.isActive) || accounts[0];
-    if (!account) return;
+    if (!account) {
+      alert('Не найден аккаунт для подключения. Выйдите и войдите снова.');
+      return;
+    }
 
     const authUrl = await api.getGmailAuthUrl(account.id, currentPlan.type);
     if (authUrl) {

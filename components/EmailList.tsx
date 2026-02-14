@@ -113,7 +113,11 @@ const EmailList: React.FC<EmailListProps> = ({
         ) : filteredEmails.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-20 text-[#c4c7c5]">
             <span className="material-symbols-rounded text-6xl mb-4 opacity-20">inbox</span>
-            <p>Nothing in strict mode.</p>
+            <p>
+              {strictMode
+                ? 'Писем в строгом режиме пока нет.'
+                : 'Писем пока нет. Подключите Gmail в Настройках.'}
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-1">

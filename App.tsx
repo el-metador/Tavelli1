@@ -4,7 +4,7 @@ import EmailList from './components/EmailList';
 import EmailView from './components/EmailView';
 import HistoryView from './components/HistoryView';
 import SettingsView from './components/SettingsView';
-import PricingModal from './components/PricingModal';
+import PricingView from './components/PricingView';
 import ComposeModal from './components/ComposeModal';
 import {
   Account,
@@ -36,10 +36,10 @@ const AuthScreen: React.FC<{
     <div className="w-full max-w-md bg-[#1e1f20] border border-[#444746]/60 rounded-3xl p-7 shadow-2xl">
       <div className="flex items-center gap-3 mb-4">
         <span className="material-symbols-rounded text-[#a8c7fa]">shield_lock</span>
-        <h1 className="text-xl font-semibold">Tavelli Secure Login</h1>
+        <h1 className="text-xl font-semibold">Tavelli Login</h1>
       </div>
       <p className="text-sm text-[#c4c7c5] mb-6">
-        Вход в Tavelli выполняется через Supabase Auth с Google аккаунтом.
+        Вход / регистрация в Tavelli выполняются через Google аккаунт.
       </p>
 
       {!supabaseConfigured && (
@@ -60,7 +60,7 @@ const AuthScreen: React.FC<{
         disabled={!supabaseConfigured || isLoading}
         className="w-full py-3 rounded-full bg-[#a8c7fa] text-[#062e6f] font-bold text-sm hover:bg-[#8ab4f8] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? 'Redirecting...' : 'Continue with Google'}
+        {isLoading ? 'Redirecting...' : 'Войти через Google'}
       </button>
     </div>
   </div>
@@ -76,11 +76,10 @@ const App: React.FC = () => {
 
   const [currentPlan, setCurrentPlan] = useState<UserPlan>(api.getPlanConfig('FREE'));
   const [activeTab, setActiveTab] = useState<'primary' | 'inbox'>('inbox');
-  const [activeView, setActiveView] = useState<'mail' | 'history' | 'settings'>('mail');
+  const [activeView, setActiveView] = useState<'mail' | 'history' | 'settings' | 'pricing'>('mail');
 
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [strictMode, setStrictMode] = useState(false);
-  const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
 
   const [emails, setEmails] = useState<Email[]>([]);
@@ -167,7 +166,7 @@ const App: React.FC = () => {
       });
     };
     fetchAccounts();
-  }, [currentPlan.type]);
+  }, [currentPlan.type, authUser?.id]);
 
   useEffect(() => {
     if (!activeAccountId) {
@@ -271,6 +270,11 @@ const App: React.FC = () => {
     setStrictMode(next.strictNoiseFilter);
   }, []);
 
+  const openPricingView = useCallback(() => {
+    setSelectedEmail(null);
+    setActiveView('pricing');
+  }, []);
+
   const handleGoogleSignIn = useCallback(async () => {
     setAuthActionLoading(true);
     setAuthError(null);
@@ -303,7 +307,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (supabaseConfigured && !authUser) {
+  if (!authUser) {
     return (
       <AuthScreen
         isLoading={authActionLoading}
@@ -320,7 +324,7 @@ const App: React.FC = () => {
         currentPlan={currentPlan}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenPricing={() => setIsPricingOpen(true)}
+        onOpenPricing={openPricingView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         primaryCount={emails.filter((email) => email.category === EmailCategory.IMPORTANT || email.category === EmailCategory.TEMPORARY_IMPORTANT).length}
@@ -329,7 +333,7 @@ const App: React.FC = () => {
       />
 
       <main className="flex-1 flex flex-col md:flex-row h-full relative">
-        <div className={`flex-1 md:flex md:max-w-md lg:max-w-lg transition-all duration-300 ${selectedEmail ? 'hidden md:flex' : 'flex'}`}>
+        <div className={`flex-1 md:flex transition-all duration-300 ${activeView === 'mail' ? 'md:max-w-md lg:max-w-lg' : 'md:max-w-none lg:max-w-none'} ${selectedEmail ? 'hidden md:flex' : 'flex'}`}>
           {activeView === 'mail' && (
             <EmailList
               emails={emails}
@@ -353,7 +357,7 @@ const App: React.FC = () => {
             <SettingsView
               currentPlan={currentPlan}
               activeAccountId={activeAccountId}
-              onOpenPricing={() => setIsPricingOpen(true)}
+              onOpenPricing={openPricingView}
               onSettingsUpdated={handleSettingsUpdated}
               onAccountSwitch={setActiveAccountId}
               authUser={authUser}
@@ -364,36 +368,46 @@ const App: React.FC = () => {
               onSignOut={handleSignOut}
             />
           )}
-        </div>
 
-        <div className={`flex-[2] bg-[#111111] md:bg-transparent transition-all duration-300 ${selectedEmail ? 'flex fixed inset-0 z-40 md:static' : 'hidden md:flex'}`}>
-          {selectedEmail ? (
-            <EmailView
-              email={selectedEmail}
-              onBack={() => setSelectedEmail(null)}
-              aiProvider={settings?.aiProvider || 'gemini'}
-              customPrompt={settings?.customPrompt || ''}
-              planType={currentPlan.type}
-              autoSignature={Boolean(settings?.autoSignature && currentPlan.limits.autoSignature)}
-              autoDate={Boolean(settings?.autoDate && currentPlan.limits.autoDate)}
-              autoLogo={Boolean(settings?.autoLogo && currentPlan.limits.autoLogo)}
-              logoUrl={settings?.logoUrl || null}
-              onTrackAction={async (action, details) => {
-                await api.addHistoryItem({
-                  actionType: action,
-                  description: details,
-                  targetEmail: selectedEmail.subject,
-                  aiStyle: settings?.aiStyle,
-                });
-              }}
+          {activeView === 'pricing' && (
+            <PricingView
+              currentPlanType={currentPlan.type}
+              onSelectPlan={handleSelectPlan}
+              onBackToMail={() => setActiveView('mail')}
             />
-          ) : (
-            <div className="hidden md:flex flex-col items-center justify-center h-full text-gray-500">
-              <span className="material-symbols-rounded text-8xl mb-4 text-[#444746]">mark_email_unread</span>
-              <p className="text-lg font-medium text-[#444746]">Select an email to view AI insights</p>
-            </div>
           )}
         </div>
+
+        {activeView === 'mail' && (
+          <div className={`flex-[2] bg-[#111111] md:bg-transparent transition-all duration-300 ${selectedEmail ? 'flex fixed inset-0 z-40 md:static' : 'hidden md:flex'}`}>
+            {selectedEmail ? (
+              <EmailView
+                email={selectedEmail}
+                onBack={() => setSelectedEmail(null)}
+                aiProvider={settings?.aiProvider || 'gemini'}
+                customPrompt={settings?.customPrompt || ''}
+                planType={currentPlan.type}
+                autoSignature={Boolean(settings?.autoSignature && currentPlan.limits.autoSignature)}
+                autoDate={Boolean(settings?.autoDate && currentPlan.limits.autoDate)}
+                autoLogo={Boolean(settings?.autoLogo && currentPlan.limits.autoLogo)}
+                logoUrl={settings?.logoUrl || null}
+                onTrackAction={async (action, details) => {
+                  await api.addHistoryItem({
+                    actionType: action,
+                    description: details,
+                    targetEmail: selectedEmail.subject,
+                    aiStyle: settings?.aiStyle,
+                  });
+                }}
+              />
+            ) : (
+              <div className="hidden md:flex flex-col items-center justify-center h-full text-gray-500">
+                <span className="material-symbols-rounded text-8xl mb-4 text-[#444746]">mark_email_unread</span>
+                <p className="text-lg font-medium text-[#444746]">Select an email to view AI insights</p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {!selectedEmail && (
@@ -432,15 +446,18 @@ const App: React.FC = () => {
             </div>
             <span className={`text-[12px] font-medium ${activeView === 'settings' ? 'text-[#e3e3e3] font-bold' : 'text-[#c4c7c5]'}`}>Настройки</span>
           </div>
+
+          <div
+            className={`flex flex-col items-center w-20 cursor-pointer group transition-opacity ${activeView === 'pricing' ? 'opacity-100' : 'opacity-60'}`}
+            onClick={() => setActiveView('pricing')}
+          >
+            <div className={`px-5 py-1 rounded-full mb-1 transition-all ${activeView === 'pricing' ? 'bg-[#004a77] scale-100' : 'scale-95'}`}>
+              <span className={`material-symbols-rounded text-[24px] ${activeView === 'pricing' ? 'text-[#c2e7ff] filled-icon' : 'text-[#c4c7c5]'}`}>payments</span>
+            </div>
+            <span className={`text-[12px] font-medium ${activeView === 'pricing' ? 'text-[#e3e3e3] font-bold' : 'text-[#c4c7c5]'}`}>Тарифы</span>
+          </div>
         </div>
       )}
-
-      <PricingModal
-        isOpen={isPricingOpen}
-        onClose={() => setIsPricingOpen(false)}
-        onSelectPlan={handleSelectPlan}
-        currentPlanType={currentPlan.type}
-      />
 
       <ComposeModal
         isOpen={isComposeOpen}
