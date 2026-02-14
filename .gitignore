@@ -23,3 +23,5 @@ server/state/*.json
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env*.local
