@@ -1,0 +1,5 @@
+{
+  "name": "Tavelli - AI Smart Mail",
+  "description": "A Material Design 3 inspired smart email client powered by Gemini. Features intelligent filtering, verification code extraction, and AI-driven drafting with Pro and Enterprise tiers.",
+  "requestFramePermissions": []
+}
